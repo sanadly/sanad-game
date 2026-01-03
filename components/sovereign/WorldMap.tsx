@@ -2,52 +2,177 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useGameStore } from '@/store/gameStore';
+import { CATEGORY_CONFIG, TaskCategory } from '@/types/tasks';
+import TaskImporter from './TaskImporter';
 
 export const WorldMap = () => {
+  const { tasks, toggleTask } = useGameStore();
+
+  // Group tasks by category
+  const tasksByCategory = tasks.reduce((acc, task) => {
+    if (!acc[task.category]) {
+      acc[task.category] = { completed: 0, total: 0, tasks: [] };
+    }
+    acc[task.category].total++;
+    acc[task.category].tasks.push(task);
+    if (task.isCompleted) acc[task.category].completed++;
+    return acc;
+  }, {} as Record<TaskCategory, { completed: number; total: number; tasks: typeof tasks }>);
+
+  // Active Quest (First incomplete task)
+  const activeTask = tasks.find(t => !t.isCompleted);
+  
+  // Stats
+  const completedCount = tasks.filter(t => t.isCompleted).length;
+  const totalCount = tasks.length;
+  const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
   return (
-    <div className="relative w-full h-full bg-[#2c2c54] overflow-hidden perspective-1000 group">
-      {/* Background Layers (Parallax) */}
-      <div className="absolute inset-0 pointer-events-none">
-      {/* Background Layers (Parallax) */}
-      <div className="absolute inset-0 pointer-events-none">
-         {/* Distant Layer: Libyan Roots (Desert Gradient) */}
-         <div className="absolute bottom-10 left-0 w-full h-48 opacity-30 bg-gradient-to-t from-orange-900 via-orange-500/20 to-transparent" />
-         
-         {/* Middle Layer: German Reality (Urban Skyline Silhouette) */}
-         <div className="absolute bottom-0 left-0 w-full h-32 opacity-40 bg-gradient-to-t from-blue-900 via-indigo-900/40 to-transparent" />
-         {/* Simple CSS Cityscape Placeholder */}
-         <div className="absolute bottom-0 left-0 w-full h-16 bg-[length:50px_100%] bg-[linear-gradient(to_bottom,transparent_20%,#1a1a2e_20%),linear-gradient(to_right,#1a1a2e_5px,transparent_5px)] opacity-50" />
-      </div>
+    <div className="relative w-full h-full bg-[#1a1a2e] overflow-hidden flex flex-col font-pixel">
+      {/* Header / Top Bar */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-black/20">
+        <div>
+          <h2 className="text-[10px] text-[#d4b483] tracking-widest uppercase font-bold">The Sovereign&apos;s Realm</h2>
+          <p className="text-[8px] text-gray-400">Territory Control</p>
+        </div>
+        <TaskImporter />
       </div>
 
-      {/* Isometric Grid Container */}
-      <div className="absolute inset-x-0 bottom-[-100px] h-[600px] w-[800px] mx-auto transform rotate-x-60 rotate-z-45 bg-[#3a3a6a] border-4 border-white/10 shadow-2xl rounded-[40px]">
-        {/* Floor Grid Pattern */}
-        <div className="absolute inset-0 opacity-20 bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[length:40px_40px]" />
+      {/* Main Grid Map Area */}
+      <div className="flex-1 p-4 overflow-y-auto">
+        
+        {/* Active Quest Banner (Hero Section) */}
+        {activeTask && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 rounded-lg border border-[#d4b483]/30 bg-gradient-to-r from-[#d4b483]/10 to-transparent p-4 relative overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 p-2 opacity-10">
+              <span className="text-4xl">⚔️</span>
+            </div>
+            
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[#d4b483] text-[9px] uppercase tracking-wider font-bold">Current Focus</span>
+                <span className="animate-pulse w-1.5 h-1.5 rounded-full bg-red-500"></span>
+              </div>
+              <h3 className="text-sm text-white font-bold mb-2">{activeTask.title}</h3>
+              
+              <div className="flex items-center gap-3 text-[9px] text-gray-400">
+                 <span className="flex items-center gap-1">
+                   {CATEGORY_CONFIG[activeTask.category].icon} {CATEGORY_CONFIG[activeTask.category].label}
+                 </span>
+                 {activeTask.duration && <span>⏱️ {activeTask.duration}m</span>}
+              </div>
+            
+              {/* Progress Bar for Active Task (Fake visual progress or timer could go here) */}
+              <div className="mt-3 h-1.5 bg-black/40 rounded-full overflow-hidden w-full max-w-[200px]">
+                <motion.div 
+                  className="h-full bg-[#d4b483]"
+                  initial={{ width: "0%" }}
+                  animate={{ width: "20%" }} 
+                />
+              </div>
+            </div>
+          </motion.div>
+        )}
 
-        {/* The Avatar */}
-        <motion.div 
-          className="absolute top-1/2 left-1/2 w-16 h-16 bg-red-500 rounded-full border-4 border-white shadow-[0_0_20px_rgba(255,255,255,0.5)] z-20"
-          animate={{ y: [0, -10, 0] }}
-          transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-        >
-          {/* Avatar Sprite Placeholder */}
-          <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-24 h-32 bg-gray-300 rounded-t-lg border-2 border-black flex items-center justify-center text-[10px] text-black font-bold">
-            YOU
-          </div>
-        </motion.div>
+        {/* Territory Grid (Categories) */}
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          {(Object.keys(CATEGORY_CONFIG) as TaskCategory[]).map((cat) => {
+            const config = CATEGORY_CONFIG[cat];
+            const stats = tasksByCategory[cat] || { completed: 0, total: 0, tasks: [] };
+            const isActive = stats.total > 0;
+            
+            if (!isActive) return null;
 
-        {/* Desk Object */}
-        <div className="absolute top-1/3 left-1/3 w-32 h-20 bg-amber-800 border-2 border-black transform -translate-x-1/2 -translate-y-1/2 shadow-lg">
-           <div className="absolute -top-4 left-2 w-8 h-4 bg-white/80" /> {/* Papers */}
+            return (
+              <motion.div
+                key={cat}
+                whileHover={{ scale: 1.02 }}
+                className="bg-[#23233b] border border-white/5 rounded-lg p-3 relative group"
+                style={{ borderLeft: `3px solid ${config.color}` }}
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <span className="text-lg">{config.icon}</span>
+                  <span className="text-[10px] text-gray-400 font-mono">{stats.completed}/{stats.total}</span>
+                </div>
+                <div className="text-[10px] font-bold text-gray-200 mb-1">{config.label}</div>
+                
+                {/* Visual Building Blocks */}
+                <div className="flex flex-wrap gap-0.5 mt-2">
+                  {stats.tasks.map((t, idx) => (
+                    <div 
+                      key={t.id}
+                      className={`w-1.5 h-1.5 rounded-[1px] ${t.isCompleted ? 'opacity-30' : 'opacity-100'}`}
+                      style={{ backgroundColor: config.color }}
+                      title={t.title}
+                    />
+                  ))}
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        {/* Task List (The "Log") */}
+        <div className="space-y-2">
+           <h4 className="text-[9px] text-gray-500 uppercase tracking-wider mb-2">Quest Log</h4>
+           {tasks.map((task) => {
+             const config = CATEGORY_CONFIG[task.category];
+             return (
+               <motion.div
+                 key={task.id}
+                 layout
+                 initial={{ opacity: 0 }}
+                 animate={{ opacity: 1 }}
+                 onClick={() => toggleTask(task.id)}
+                 className={`
+                   group flex items-center gap-3 p-2 rounded border border-white/5 
+                   hover:bg-white/5 cursor-pointer transition-colors
+                   ${task.isCompleted ? 'opacity-50 grayscale-[0.5]' : ''}
+                 `}
+               >
+                 <div 
+                   className={`w-4 h-4 rounded-sm border flex items-center justify-center transition-colors
+                     ${task.isCompleted ? 'bg-white/10 border-transparent' : 'border-gray-600 group-hover:border-gray-400'}
+                   `}
+                 >
+                   {task.isCompleted && <span className="text-[8px] text-white">✓</span>}
+                 </div>
+                 
+                 <div className="flex-1 min-w-0">
+                   <div className={`text-[11px] truncate ${task.isCompleted ? 'text-gray-500 line-through' : 'text-gray-200'}`}>
+                     {task.title}
+                   </div>
+                 </div>
+
+                 <div 
+                    className="w-1.5 h-1.5 rounded-full" 
+                    style={{ backgroundColor: config.color }} 
+                    title={config.label}
+                 />
+               </motion.div>
+             );
+           })}
         </div>
       </div>
-
-      {/* Relic Shelf (Overlay at bottom) */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex space-x-4 bg-black/50 p-2 rounded-xl border border-white/20 backdrop-blur-sm">
-        <div className="w-12 h-12 border-2 border-dashed border-gray-500 rounded bg-black/40 flex items-center justify-center hover:border-pixel-gold transition-colors cursor-pointer" title="Scholar's Cap (Locked)">🔒</div>
-        <div className="w-12 h-12 border-2 border-dashed border-gray-500 rounded bg-black/40 flex items-center justify-center hover:border-pixel-gold transition-colors cursor-pointer" title="Golden Eagle (Locked)">🔒</div>
-        <div className="w-12 h-12 border-2 border-dashed border-gray-500 rounded bg-black/40 flex items-center justify-center hover:border-pixel-gold transition-colors cursor-pointer" title="Passive Flow (Locked)">🔒</div>
+      
+      {/* Footer Stats */}
+      <div className="bg-[#11111f] border-t border-white/10 p-3 pt-2">
+        <div className="flex items-end justify-between text-[9px] text-gray-400 mb-1">
+          <span>Daily Completion</span>
+          <span className="text-white font-mono">{progressPercent}%</span>
+        </div>
+        <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
+          <motion.div 
+            className="h-full bg-[#d4b483]"
+            initial={{ width: 0 }}
+            animate={{ width: `${progressPercent}%` }}
+          />
+        </div>
       </div>
     </div>
   );

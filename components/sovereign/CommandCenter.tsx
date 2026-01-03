@@ -1,17 +1,81 @@
-'use client';
-
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { parseUserInput } from '@/lib/gemini';
+import { ChatMessage, StatType } from '@/types/game';
 
 export const CommandCenter = () => {
-  const { activeQuests } = useGameStore();
+  const { stats, updateStat, addQuest, activeQuests } = useGameStore();
   const [input, setInput] = useState('');
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const handleSend = () => {
-    if (!input.trim()) return;
-    // Placeholder for Gemini integration
-    console.log('User sent:', input);
+  // Auto-scroll to bottom of chat
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, isLoading]);
+
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: ChatMessage = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content: input,
+      timestamp: new Date(),
+    };
+
+    setMessages(prev => [...prev, userMessage]);
     setInput('');
+    setIsLoading(true);
+
+    try {
+      // Map flat store stats to the structure Gemini expects
+      const currentStats: Record<StatType, { value: number; max: number }> = {
+        SOVEREIGNTY: { value: stats.sovereignty, max: 100 },
+        CAPITAL: { value: stats.capital, max: 10000 }, // Adjusted max for capital
+        INTELLECT: { value: stats.intellect, max: 100 },
+        AESTHETICS: { value: 0, max: 100 }, // Placeholder for missing stats in store
+        KINDRED: { value: 0, max: 100 },
+        VITALITY: { value: 0, max: 100 },
+      };
+
+      const result = await parseUserInput(input, currentStats);
+
+      // Handle stat changes
+      Object.entries(result.statChanges).forEach(([stat, amount]) => {
+        if (amount !== 0) {
+          updateStat(stat.toLowerCase(), amount);
+        }
+      });
+
+      // Handle new quest
+      if (result.quest) {
+        addQuest({
+          id: result.quest.id,
+          title: result.quest.title,
+          description: result.quest.description,
+          xp: 25, // Default XP
+          gold: 50, // Default Gold
+          type: result.quest.specialType || 'normal'
+        });
+      }
+
+      const navigatorMessage: ChatMessage = {
+        id: `navigator-${Date.now()}`,
+        role: 'assistant',
+        content: result.message,
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, navigatorMessage]);
+    } catch (error) {
+      console.error('Failed to get Navigator response:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -21,34 +85,57 @@ export const CommandCenter = () => {
         <div className="absolute top-0 left-0 w-full bg-gray-800 text-[10px] text-center text-gray-400 py-1 border-b border-gray-700">
           NAVIGATOR UPLINK v2.6
         </div>
-        
-        <div className="flex-1 overflow-y-auto mt-6 mb-2 space-y-3">
-           <div className="flex flex-col space-y-1">
-             <span className="text-pixel-blue text-xs ml-1">SYSTEM</span>
-             <div className="bg-pixel-blue/10 text-blue-200 text-xs p-2 rounded border border-pixel-blue/30 max-w-[90%]">
-               Welcome back, Sovereign. Adjusting Reality Parameters...
+        <div ref={scrollRef} className="flex-1 overflow-y-auto mt-6 mb-2 space-y-3 pr-2 scrollbar-thin scrollbar-thumb-gray-700">
+           {messages.length === 0 && (
+             <div className="flex flex-col space-y-1">
+               <span className="text-pixel-blue text-xs ml-1">SYSTEM</span>
+               <div className="bg-pixel-blue/10 text-blue-200 text-xs p-2 rounded border border-pixel-blue/30 max-w-[90%]">
+                 Welcome back, Sovereign. Adjusting Reality Parameters...
+               </div>
              </div>
-           </div>
-           {/* Example User Message */}
-           {/* <div className="flex flex-col space-y-1 items-end">
-             <span className="text-pixel-gold text-xs mr-1">YOU</span>
-             <div className="bg-pixel-gold/10 text-yellow-200 text-xs p-2 rounded border border-pixel-gold/30 max-w-[90%]">
-               Upload tax documents.
+           )}
+           
+           {messages.map((msg, i) => (
+             <div key={i} className={`flex flex-col space-y-1 ${msg.role === 'user' ? 'items-end' : ''}`}>
+               <span className={`${msg.role === 'user' ? 'text-pixel-gold mr-1' : 'text-pixel-blue ml-1'} text-[10px]`}>
+                 {msg.role === 'user' ? 'YOU' : 'NAVIGATOR'}
+               </span>
+               <div className={`${
+                 msg.role === 'user' 
+                   ? 'bg-pixel-gold/10 text-yellow-200 border-pixel-gold/30' 
+                   : 'bg-pixel-blue/10 text-blue-200 border-pixel-blue/30'
+                 } text-xs p-2 rounded border max-w-[90%]`}>
+                 {msg.content}
+               </div>
              </div>
-           </div> */}
+           ))}
+
+           {isLoading && (
+             <div className="flex flex-col space-y-1">
+                <span className="text-pixel-blue text-xs ml-1">NAVIGATOR</span>
+                <div className="bg-pixel-blue/5 text-blue-400 text-xs p-2 rounded border border-pixel-blue/20 max-w-[90%] animate-pulse">
+                  Processing Uplink...
+                </div>
+             </div>
+           )}
         </div>
 
         {/* Vision/Input Area */}
         <div className="mt-auto flex items-center space-x-2 border-t border-gray-700 pt-2">
-           <button className="w-8 h-8 flex items-center justify-center bg-gray-800 hover:bg-gray-700 border border-gray-600 rounded text-gray-400 hover:text-white transition-colors" title="Upload Vision Data">
+           <button 
+             className="w-8 h-8 flex items-center justify-center bg-gray-800 hover:bg-gray-700 border border-gray-600 rounded text-gray-400 hover:text-white transition-colors" 
+             title="Upload Vision Data"
+             disabled={isLoading}
+           >
              📷
            </button>
            <input 
              type="text" 
              value={input}
              onChange={(e) => setInput(e.target.value)}
-             className="flex-1 bg-black border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-pixel-accent font-mono"
-             placeholder="Enter command..."
+             disabled={isLoading}
+             className="flex-1 bg-black border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-pixel-accent font-mono disabled:opacity-50"
+             placeholder={isLoading ? "Analyzing..." : "Enter command..."}
              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
            />
         </div>

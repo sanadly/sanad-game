@@ -2,6 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { StatType, Quest, SovereigntySimulation } from '@/types/game';
 import { retryWithBackoff, sanitizeInput } from './utils';
 import { toastManager } from './toast';
+import { saveChatMessage, loadRecentChatHistory, FirestoreChatMessage } from './firestore';
 
 const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
@@ -50,9 +51,24 @@ export async function parseUserInput(input: string, currentStats: Record<StatTyp
     };
   }
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-  const prompt = `You are the Game Master of Terra Nova. Every time the user talks to you, you MUST return a JSON object with this EXACT structure. Do not include any text before or after the JSON. Return ONLY valid JSON.
+  // Load recent chat history for context (AI Memory)
+  let chatHistoryContext = '';
+  try {
+    const recentChats = await loadRecentChatHistory(10);
+    if (recentChats.length > 0) {
+      chatHistoryContext = `\n\nRECENT CONVERSATION HISTORY (for context - remember what the player told you):\n${recentChats.map(msg => 
+        `${msg.role === 'user' ? 'PLAYER' : 'NAVIGATOR'}: ${msg.content}`
+      ).join('\n')}\n`;
+    }
+  } catch (e) {
+    // Continue without history if Firebase is not configured
+  }
+
+  const prompt = `You are "The Navigator", the Game Master of Terra Nova. You have MEMORY of past conversations.
+${chatHistoryContext}
+Every time the user talks to you, you MUST return a JSON object with this EXACT structure. Do not include any text before or after the JSON. Return ONLY valid JSON.
 
 {
   "statUpdates": {
@@ -63,7 +79,7 @@ export async function parseUserInput(input: string, currentStats: Record<StatTyp
     "KINDRED": 0,
     "VITALITY": 0
   },
-  "narrativeResponse": "Your response as The Navigator in pixel game style",
+  "narrativeResponse": "Your response as The Navigator in pixel game style. Reference past conversations if relevant!",
   "newQuest": {
     "title": "Quest Title (or null if no quest needed)",
     "reward": "Reward description (or null)"
@@ -91,6 +107,7 @@ CRITICAL: Base the statUpdates on the effort and impact of their real-world acti
 - "Had a great date" = +10 KINDRED
 
 Generate a newQuest only if there's a significant imbalance or opportunity. Otherwise, set newQuest to null.
+If the player references something from past conversations, acknowledge it!
 
 Return ONLY the JSON object. No markdown, no code blocks, no explanations. Just the raw JSON.`;
 
@@ -131,6 +148,18 @@ Return ONLY the JSON object. No markdown, no code blocks, no explanations. Just 
       createdAt: new Date(),
     } : undefined;
 
+    // Save conversation to Firebase for AI memory
+    try {
+      await saveChatMessage({ role: 'user', content: sanitizedInput });
+      await saveChatMessage({ 
+        role: 'assistant', 
+        content: narrativeResponse,
+        statChanges: statUpdates 
+      });
+    } catch (e) {
+      // Continue even if saving fails
+    }
+
     return {
       statChanges: {
         SOVEREIGNTY: statUpdates.SOVEREIGNTY || 0,
@@ -166,7 +195,7 @@ export async function generateQuest(currentStats: Record<StatType, { value: numb
     return null;
   }
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
   // Check for special conditions
   const sovereignty = currentStats.SOVEREIGNTY?.value || 0;
@@ -256,7 +285,7 @@ export async function runSovereigntySimulation(
     return null;
   }
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
   // Calculate gap analysis
   const statValues = Object.entries(currentStats).map(([type, stat]) => ({
