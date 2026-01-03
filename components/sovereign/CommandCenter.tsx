@@ -78,7 +78,7 @@ export const CommandCenter = () => {
   return (
     <div className="h-full bg-pixel-dark border-l-4 border-gray-800 p-4 flex flex-col font-pixel">
       {/* Navigator Chat */}
-      <div className="flex-1 bg-gray-900 border-2 border-gray-700 rounded-lg p-3 mb-4 flex flex-col relative overflow-hidden">
+      <div className="flex-1 min-h-0 bg-gray-900 border-2 border-gray-700 rounded-lg p-3 mb-4 flex flex-col relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full bg-gray-800 text-[10px] text-center text-gray-400 py-1 border-b border-gray-700">
           NAVIGATOR UPLINK v2.6
         </div>
