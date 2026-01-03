@@ -1,0 +1,48 @@
+'use client';
+
+import { IconProps, iconPaths, iconFallbacks } from '@/lib/icons';
+import { useState } from 'react';
+import Image from 'next/image';
+
+export default function Icon({ name, size = 32, className = '', fallback }: IconProps) {
+  const [imageError, setImageError] = useState(false);
+  const iconPath = iconPaths[name];
+  const emojiFallback = fallback || iconFallbacks[name];
+
+  // Automatically try to use images - gracefully fall back to emojis if missing
+  // This handles the case where warning.png and success.png are not yet generated
+  if (iconPath && !imageError) {
+    return (
+      <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
+        <Image
+          src={iconPath}
+          alt={name}
+          width={size}
+          height={size}
+          className={`pixel-art ${className}`}
+          onError={() => setImageError(true)}
+          style={{ 
+            width: size, 
+            height: size,
+            imageRendering: 'pixelated',
+            imageRendering: '-moz-crisp-edges',
+            imageRendering: 'crisp-edges',
+          }}
+          unoptimized // For pixel art, we want crisp edges
+        />
+      </div>
+    );
+  }
+
+  // Fallback to emoji if image fails to load or doesn't exist
+  return (
+    <span
+      className={`inline-flex items-center justify-center ${className}`}
+      style={{ fontSize: size, width: size, height: size }}
+      aria-label={name}
+    >
+      {emojiFallback}
+    </span>
+  );
+}
+

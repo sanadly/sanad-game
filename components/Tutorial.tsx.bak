@@ -1,0 +1,199 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import Icon from './Icon';
+
+interface TutorialStep {
+  id: string;
+  title: string;
+  content: string;
+  target?: string; // CSS selector for highlighting
+}
+
+const tutorialSteps: TutorialStep[] = [
+  {
+    id: 'welcome',
+    title: 'Welcome to Terra Nova!',
+    content: 'This is your journey from student to absolute sovereign. Your real-world actions shape your digital realm.',
+  },
+  {
+    id: 'stats',
+    title: 'The Six Core Stats',
+    content: 'Track SOVEREIGNTY (citizenship), CAPITAL (wealth), INTELLECT (learning), AESTHETICS (lifestyle), KINDRED (relationships), and VITALITY (energy).',
+    target: '.stat-bar-container',
+  },
+  {
+    id: 'navigator',
+    title: 'The Navigator',
+    content: 'Chat with The Navigator in natural language. Describe your week, and AI will automatically update your stats and generate quests.',
+    target: '[aria-label="THE NAVIGATOR"]',
+  },
+  {
+    id: 'quests',
+    title: 'Quests',
+    content: 'When stats are imbalanced, The Navigator generates personalized quests. Complete them in real life, then click "COMPLETE QUEST" to claim rewards.',
+    target: '[aria-label="ACTIVE QUESTS"]',
+  },
+  {
+    id: 'skill-tree',
+    title: 'Skill Tree',
+    content: 'Progress through 10 levels from "The Student" to "The Absolute Sovereign". Each level unlocks as you meet requirements.',
+    target: '[aria-label="SKILL TREE"]',
+  },
+  {
+    id: 'relics',
+    title: 'Relics',
+    content: 'Unlock special relics at major milestones. Click them to see celebrations!',
+    target: '[aria-label="RELIC COLLECTION"]',
+  },
+  {
+    id: 'simulation',
+    title: 'Sovereignty Simulation',
+    content: 'Project your future! Enter savings and investment data to see when you\'ll achieve financial independence.',
+  },
+  {
+    id: 'data',
+    title: 'Data Management',
+    content: 'Export your progress regularly, or import a previous save. Your data is saved automatically to localStorage.',
+  },
+];
+
+export default function Tutorial() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [hasSeenTutorial, setHasSeenTutorial] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('terra-nova-tutorial-seen') === 'true';
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    // Show tutorial on first visit
+    if (!hasSeenTutorial && typeof window !== 'undefined') {
+      const timer = setTimeout(() => {
+        setIsOpen(true);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [hasSeenTutorial]);
+
+  const handleNext = () => {
+    if (currentStep < tutorialSteps.length - 1) {
+      setCurrentStep(currentStep + 1);
+    } else {
+      handleComplete();
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleComplete = () => {
+    setIsOpen(false);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('terra-nova-tutorial-seen', 'true');
+      setHasSeenTutorial(true);
+    }
+  };
+
+  const handleSkip = () => {
+    handleComplete();
+  };
+
+  if (!isOpen && hasSeenTutorial) {
+    return (
+      <button
+        onClick={() => setIsOpen(true)}
+        className="fixed bottom-4 left-4 pixel-button bg-pixel-blue z-50"
+        aria-label="Show tutorial"
+      >
+        <Icon name="info" size={20} />
+      </button>
+    );
+  }
+
+  const step = tutorialSteps[currentStep];
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 z-[100]"
+            onClick={handleSkip}
+          />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pixel-card max-w-md w-full mx-4 z-[101]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Icon name="info" size={24} />
+                <h3 className="text-sm text-pixel-accent text-glow">
+                  Tutorial: {step.title}
+                </h3>
+              </div>
+              <button
+                onClick={handleSkip}
+                className="text-gray-400 hover:text-white"
+                aria-label="Skip tutorial"
+              >
+                ×
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-300 mb-6 leading-relaxed">
+              {step.content}
+            </p>
+
+            <div className="flex items-center justify-between">
+              <div className="flex gap-2">
+                {currentStep > 0 && (
+                  <button
+                    onClick={handlePrevious}
+                    className="pixel-button bg-pixel-dark"
+                    aria-label="Previous step"
+                  >
+                    Previous
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                {tutorialSteps.map((_, i) => (
+                  <div
+                    key={i}
+                    className={`w-2 h-2 rounded-full ${
+                      i === currentStep ? 'bg-pixel-accent' : 'bg-gray-600'
+                    }`}
+                    aria-label={`Step ${i + 1}`}
+                  />
+                ))}
+              </div>
+
+              <button
+                onClick={handleNext}
+                className="pixel-button"
+                aria-label={currentStep === tutorialSteps.length - 1 ? 'Complete tutorial' : 'Next step'}
+              >
+                {currentStep === tutorialSteps.length - 1 ? 'Complete' : 'Next'}
+              </button>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+

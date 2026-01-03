@@ -1,0 +1,97 @@
+'use client';
+
+import { memo, useMemo } from 'react';
+import { motion } from 'framer-motion';
+import { useGameStore } from '@/store/gameStore';
+import Icon from './Icon';
+
+const SkillTree = memo(function SkillTree() {
+  const skillTree = useGameStore((state) => state.skillTree);
+  const stats = useGameStore((state) => state.stats);
+
+  const getProgressForLevel = useMemo(() => {
+    return (level: any) => {
+      const requirements = Object.entries(level.requirements);
+      if (requirements.length === 0) return 100;
+
+      let totalProgress = 0;
+      requirements.forEach(([statType, requiredValue]) => {
+        const currentValue = stats[statType as keyof typeof stats]?.value || 0;
+        const progress = Math.min(100, (currentValue / requiredValue) * 100);
+        totalProgress += progress;
+      });
+
+      return totalProgress / requirements.length;
+    };
+  }, [stats]);
+
+  return (
+    <div className="pixel-card max-w-5xl mx-auto mt-4" aria-label="SKILL TREE">
+      <div className="flex items-center gap-3 mb-6">
+        <Icon name="skillTree" size={32} />
+        <h3 className="text-sm text-pixel-gold text-glow">SKILL TREE: THE PATH TO SOVEREIGNTY</h3>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {skillTree.map((level, index) => {
+          const progress = getProgressForLevel(level);
+          const isUnlocked = level.unlocked;
+          const isNext = !isUnlocked && (index === 0 || skillTree[index - 1].unlocked);
+
+          return (
+            <motion.div
+              key={level.level}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              className={`pixel-card border-2 ${
+                isUnlocked
+                  ? 'border-pixel-gold bg-gradient-to-br from-pixel-gold/10 to-transparent glow-pulse'
+                  : isNext
+                  ? 'border-pixel-accent bg-gradient-to-br from-pixel-accent/5 to-transparent'
+                  : 'border-gray-600 bg-gradient-to-br from-gray-800/50 to-transparent opacity-60'
+              }`}
+              role="article"
+              aria-label={`Skill level ${level.level}: ${level.title}`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  {isUnlocked && <Icon name="achievement" size={20} />}
+                  <div className="text-xs font-bold text-pixel">
+                    Level {level.level}: {level.title}
+                    {isUnlocked && <span className="ml-2 text-pixel-gold">✓</span>}
+                  </div>
+                </div>
+                {!isUnlocked && (
+                  <div className="text-xs text-gray-400 font-mono" aria-label={`${Math.round(progress)}% progress`}>
+                    {Math.round(progress)}%
+                  </div>
+                )}
+              </div>
+              <div className="text-xs text-gray-300 mb-3 leading-relaxed">{level.description}</div>
+              {!isUnlocked && (
+                <>
+                  <div className="text-xs text-gray-400 mb-3">
+                    <strong className="text-pixel-accent">Requirements:</strong>{' '}
+                    {Object.entries(level.requirements)
+                      .map(([stat, value]) => `${stat}: ${value}`)
+                      .join(', ')}
+                  </div>
+                  <div className="h-2 bg-gray-700 pixel-border" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
+                    <motion.div
+                      className="h-full bg-gradient-to-r from-pixel-accent to-pixel-gold"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${progress}%` }}
+                      transition={{ duration: 0.5 }}
+                    />
+                  </div>
+                </>
+              )}
+            </motion.div>
+          );
+        })}
+      </div>
+    </div>
+  );
+});
+
+export default SkillTree;

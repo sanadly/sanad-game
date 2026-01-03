@@ -1,0 +1,321 @@
+'use client';
+
+import { motion } from 'framer-motion';
+import { useGameStore } from '@/store/gameStore';
+
+export default function DreamBackground() {
+  const totalProgress = useGameStore((state) => state.totalProgress);
+  const sovereignty = useGameStore((state) => state.stats.SOVEREIGNTY.value);
+  const freeRoamMode = useGameStore((state) => state.freeRoamMode);
+  
+  // Background progression: stormy sea (0-30) → clearing (30-70) → sunny world map (70-100)
+  const getBackgroundState = () => {
+    if (freeRoamMode) return 'world-map';
+    if (totalProgress < 30) return 'stormy';
+    if (totalProgress < 70) return 'clearing';
+    return 'sunny';
+  };
+
+  const state = getBackgroundState();
+  const opacity = 0.3 + (totalProgress / 100) * 0.7;
+  const blur = Math.max(0, 10 - (totalProgress / 100) * 10);
+
+  return (
+    <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+      {/* Parallax Layer 1: Fast-moving city/Germany layer */}
+      <motion.div
+        className="absolute inset-0"
+        animate={{
+          x: [0, -100, 0],
+        }}
+        transition={{
+          duration: 20,
+          repeat: Infinity,
+          repeatType: 'reverse',
+        }}
+        style={{ opacity: opacity * 0.5 }}
+      >
+        {state !== 'stormy' && (
+          <>
+            <div className="absolute top-20 left-10 text-4xl opacity-40">🏙️</div>
+            <div className="absolute top-40 right-20 text-4xl opacity-40">🇩🇪</div>
+            <div className="absolute bottom-40 left-1/4 text-4xl opacity-40">🏛️</div>
+          </>
+        )}
+      </motion.div>
+
+      {/* Parallax Layer 2: Slow-moving dream layer */}
+      <motion.div
+        className="absolute inset-0"
+        style={{
+          opacity,
+          filter: `blur(${blur}px)`,
+        }}
+        animate={{
+          backgroundPosition: ['0% 0%', '100% 100%'],
+        }}
+        transition={{
+          duration: 60,
+          repeat: Infinity,
+          repeatType: 'reverse',
+        }}
+      >
+        {/* Stormy Sea Phase (0-30%) */}
+        {state === 'stormy' && (
+          <>
+            <div 
+              className="absolute inset-0"
+              style={{
+                background: `linear-gradient(
+                  180deg,
+                  rgba(50, 50, 80, 0.9) 0%,
+                  rgba(30, 30, 60, 0.9) 50%,
+                  rgba(20, 20, 40, 0.9) 100%
+                )`,
+              }}
+            />
+            <motion.div 
+              className="absolute top-20 left-10 text-4xl opacity-30"
+              animate={{ y: [0, 10, 0] }}
+              transition={{ duration: 3, repeat: Infinity }}
+            >
+              🌊
+            </motion.div>
+            <motion.div 
+              className="absolute top-40 right-20 text-4xl opacity-30"
+              animate={{ y: [0, -10, 0] }}
+              transition={{ duration: 4, repeat: Infinity }}
+            >
+              🌊
+            </motion.div>
+            <motion.div 
+              className="absolute bottom-40 left-1/4 text-4xl opacity-30"
+              animate={{ opacity: [0.3, 0.6, 0.3] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              ⛈️
+            </motion.div>
+          </>
+        )}
+
+        {/* Clearing Phase (30-70%) */}
+        {state === 'clearing' && (
+          <>
+            <div 
+              className="absolute inset-0"
+              style={{
+                background: `linear-gradient(
+                  135deg,
+                  rgba(100, 150, 200, 0.6) 0%,
+                  rgba(150, 200, 255, 0.6) 50%,
+                  rgba(200, 220, 255, 0.6) 100%
+                )`,
+              }}
+            />
+            <motion.div 
+              className="absolute top-20 left-10 text-5xl opacity-50"
+              animate={{ y: [0, -5, 0] }}
+              transition={{ duration: 5, repeat: Infinity }}
+            >
+              🌅
+            </motion.div>
+            <motion.div 
+              className="absolute top-40 right-20 text-4xl opacity-40"
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 3, repeat: Infinity }}
+            >
+              🏝️
+            </motion.div>
+            <motion.div 
+              className="absolute bottom-40 left-1/4 text-4xl opacity-40"
+              animate={{ y: [0, 5, 0] }}
+              transition={{ duration: 4, repeat: Infinity }}
+            >
+              ⛰️
+            </motion.div>
+            <motion.div 
+              className="absolute top-1/2 right-1/3 text-4xl opacity-40"
+              animate={{ x: [0, 10, 0] }}
+              transition={{ duration: 6, repeat: Infinity }}
+            >
+              ✈️
+            </motion.div>
+          </>
+        )}
+
+        {/* Sunny World Map Phase (70-100%) */}
+        {state === 'sunny' && sovereignty >= 100 && !freeRoamMode && (
+          <>
+            <div 
+              className="absolute inset-0"
+              style={{
+                background: `linear-gradient(
+                  135deg,
+                  rgba(135, 206, 250, 0.8) 0%,
+                  rgba(255, 215, 0, 0.4) 50%,
+                  rgba(255, 192, 203, 0.4) 100%
+                )`,
+              }}
+            />
+            <motion.div 
+              className="absolute top-20 left-10 text-6xl opacity-70"
+              animate={{ rotate: [0, 5, 0] }}
+              transition={{ duration: 4, repeat: Infinity }}
+            >
+              🗺️
+            </motion.div>
+            <motion.div 
+              className="absolute top-40 right-20 text-5xl opacity-70"
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ duration: 3, repeat: Infinity }}
+            >
+              🇯🇵
+            </motion.div>
+            <motion.div 
+              className="absolute bottom-40 left-1/4 text-5xl opacity-70"
+              animate={{ y: [0, -5, 0] }}
+              transition={{ duration: 5, repeat: Infinity }}
+            >
+              🇮🇩
+            </motion.div>
+            <motion.div 
+              className="absolute top-1/2 right-1/3 text-5xl opacity-70"
+              animate={{ x: [0, 10, 0] }}
+              transition={{ duration: 6, repeat: Infinity }}
+            >
+              🇺🇸
+            </motion.div>
+            <motion.div 
+              className="absolute bottom-20 right-10 text-5xl opacity-70"
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 4, repeat: Infinity }}
+            >
+              🌍
+            </motion.div>
+            <motion.div 
+              className="absolute top-1/3 left-1/3 text-6xl opacity-60"
+              animate={{ rotate: [0, 360] }}
+              transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+            >
+              ☀️
+            </motion.div>
+          </>
+        )}
+
+        {/* Free Roam Mode - Interactive World Map */}
+        {freeRoamMode && (
+          <>
+            <div 
+              className="absolute inset-0"
+              style={{
+                background: `linear-gradient(
+                  135deg,
+                  rgba(135, 206, 250, 1) 0%,
+                  rgba(255, 215, 0, 0.6) 50%,
+                  rgba(255, 192, 203, 0.6) 100%
+                )`,
+              }}
+            />
+            <motion.div 
+              className="absolute top-20 left-10 text-7xl opacity-90"
+              animate={{ rotate: [0, 360] }}
+              transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
+            >
+              🗺️
+            </motion.div>
+            <motion.div 
+              className="absolute top-40 right-20 text-6xl opacity-90"
+              animate={{ scale: [1, 1.3, 1], y: [0, -10, 0] }}
+              transition={{ duration: 4, repeat: Infinity }}
+            >
+              🇯🇵
+            </motion.div>
+            <motion.div 
+              className="absolute bottom-40 left-1/4 text-6xl opacity-90"
+              animate={{ scale: [1, 1.2, 1], y: [0, 10, 0] }}
+              transition={{ duration: 5, repeat: Infinity }}
+            >
+              🇮🇩
+            </motion.div>
+            <motion.div 
+              className="absolute top-1/2 right-1/3 text-6xl opacity-90"
+              animate={{ x: [0, 15, 0], y: [0, -5, 0] }}
+              transition={{ duration: 6, repeat: Infinity }}
+            >
+              🇺🇸
+            </motion.div>
+            <motion.div 
+              className="absolute bottom-20 right-10 text-6xl opacity-90"
+              animate={{ scale: [1, 1.2, 1], rotate: [0, 10, 0] }}
+              transition={{ duration: 4, repeat: Infinity }}
+            >
+              🌍
+            </motion.div>
+            <motion.div 
+              className="absolute top-1/3 left-1/3 text-7xl opacity-80"
+              animate={{ rotate: [0, 360], scale: [1, 1.1, 1] }}
+              transition={{ 
+                rotate: { duration: 20, repeat: Infinity, ease: 'linear' },
+                scale: { duration: 3, repeat: Infinity }
+              }}
+            >
+              ☀️
+            </motion.div>
+            <motion.div 
+              className="absolute top-1/2 left-1/2 text-5xl opacity-80"
+              animate={{ y: [0, -20, 0] }}
+              transition={{ duration: 3, repeat: Infinity }}
+            >
+              ✈️
+            </motion.div>
+          </>
+        )}
+
+        {/* Default sunny state if sovereignty not 100 yet */}
+        {state === 'sunny' && sovereignty < 100 && (
+          <>
+            <div 
+              className="absolute inset-0"
+              style={{
+                background: `linear-gradient(
+                  135deg,
+                  rgba(135, 206, 250, 0.7) 0%,
+                  rgba(255, 215, 0, 0.3) 50%,
+                  rgba(255, 192, 203, 0.3) 100%
+                )`,
+              }}
+            />
+            <motion.div 
+              className="absolute top-20 left-10 text-5xl opacity-60"
+              animate={{ y: [0, -5, 0] }}
+              transition={{ duration: 5, repeat: Infinity }}
+            >
+              🌅
+            </motion.div>
+            <motion.div 
+              className="absolute top-40 right-20 text-4xl opacity-50"
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 3, repeat: Infinity }}
+            >
+              🏖️
+            </motion.div>
+            <motion.div 
+              className="absolute bottom-40 left-1/4 text-4xl opacity-50"
+              animate={{ y: [0, 5, 0] }}
+              transition={{ duration: 4, repeat: Infinity }}
+            >
+              ⛰️
+            </motion.div>
+            <motion.div 
+              className="absolute top-1/2 right-1/3 text-4xl opacity-50"
+              animate={{ x: [0, 10, 0] }}
+              transition={{ duration: 6, repeat: Infinity }}
+            >
+              ✈️
+            </motion.div>
+          </>
+        )}
+      </motion.div>
+    </div>
+  );
+}

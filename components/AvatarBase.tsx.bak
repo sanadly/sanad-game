@@ -1,0 +1,90 @@
+'use client';
+
+import { motion } from 'framer-motion';
+import { useGameStore } from '@/store/gameStore';
+import Icon from './Icon';
+
+export default function AvatarBase() {
+  const avatar = useGameStore((state) => state.avatar);
+  const base = useGameStore((state) => state.base);
+  const relics = useGameStore((state) => state.relics);
+  
+  const hasScholarsCape = relics.find(r => r.id === 'scholars-diploma')?.unlocked || false;
+  const hasBluePassport = relics.find(r => r.id === 'blaue-pass')?.unlocked || false;
+
+  const getAvatarEmoji = () => {
+    if (avatar.appearance.travelerCloak) return '🧙‍♂️';
+    if (avatar.appearance.aura) return '✨';
+    if (avatar.appearance.clothes === 'suit') return '👔';
+    if (avatar.appearance.clothes === 'casual') return '👕';
+    return '👤';
+  };
+
+  const getBaseEmoji = () => {
+    if (base.type === 'penthouse') return '🏢';
+    if (base.type === 'apartment') return '🏠';
+    return '🏘️';
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-6 mt-8">
+      {/* Avatar with Scholar's Cape Effect */}
+      <div className="relative pixel-card p-6">
+        {avatar.appearance.aura && (
+          <div className="absolute inset-0 pixel-glow glow-pulse" style={{
+            background: 'radial-gradient(circle, rgba(255,215,0,0.3) 0%, transparent 70%)',
+            pointerEvents: 'none',
+          }} />
+        )}
+        {hasScholarsCape && (
+          <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <motion.div
+                key={i}
+                className="text-xs"
+                animate={{
+                  y: [0, -10, 0],
+                  opacity: [0.5, 1, 0.5],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  delay: i * 0.2,
+                }}
+              >
+                ⭐
+              </motion.div>
+            ))}
+          </div>
+        )}
+        {avatar.appearance.travelerCloak && (
+          <div className="absolute -top-3 -right-3 pixel-border bg-pixel-gold/20 p-2">
+            <Icon name="achievement" size={24} />
+          </div>
+        )}
+        {hasBluePassport && (
+          <div className="absolute -top-2 -left-2 text-xs text-pixel-gold pixel-border px-2 py-1 bg-pixel-dark">
+            ✈️ Fast Travel
+          </div>
+        )}
+        <div className="text-7xl pixel-glow mb-3">{getAvatarEmoji()}</div>
+        <div className="text-xs text-center text-gray-300 text-pixel">
+          Level {avatar.level}
+          {avatar.appearance.travelerCloak && <span className="ml-2 text-pixel-gold">• Traveler</span>}
+          {hasScholarsCape && <span className="ml-2 text-pixel-blue">• Scholar's Cape</span>}
+        </div>
+      </div>
+
+      {/* Base - Changes to Sovereign Villa when Golden Ticket unlocks */}
+      <div className="pixel-card p-6 max-w-md">
+        <div className="text-5xl text-center mb-3">{getBaseEmoji()}</div>
+        <div className="text-xs text-center text-gray-300 leading-relaxed mb-3">
+          {base.description}
+        </div>
+        <div className="text-xs text-center text-gray-400 text-pixel">
+          Base Level {base.level}
+        </div>
+      </div>
+    </div>
+  );
+}

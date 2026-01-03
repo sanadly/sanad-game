@@ -1,0 +1,204 @@
+'use client';
+
+import { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useGameStore } from '@/store/gameStore';
+import { parseUserInput, generateQuest } from '@/lib/gemini';
+import { ChatMessage } from '@/types/game';
+import SimulationModal from './SimulationModal';
+import Icon from './Icon';
+
+export default function ChatInterface() {
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: 'welcome',
+      role: 'system',
+      content: 'Greetings, Architect. I am The Navigator, your guide on the path to Absolute Sovereignty. What have you constructed this week?',
+      timestamp: new Date(),
+    },
+  ]);
+  const [input, setInput] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [showSimulation, setShowSimulation] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const stats = useGameStore((state) => state.stats);
+  const updateStat = useGameStore((state) => state.updateStat);
+  const addQuest = useGameStore((state) => state.addQuest);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isProcessing) return;
+
+    const sanitizedInput = sanitizeInput(input);
+    if (!sanitizedInput) {
+      toastManager.show('Please enter a valid message', 'warning');
+      return;
+    }
+
+    const userMessage: ChatMessage = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content: sanitizedInput,
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    setInput('');
+    setIsProcessing(true);
+
+    try {
+      const currentStats = Object.entries(stats).reduce(
+        (acc, [type, stat]) => ({
+          ...acc,
+          [type]: { value: stat.value, max: stat.max },
+        }),
+        {} as Record<string, { value: number; max: number }>
+      );
+
+      const parsed = await parseUserInput(sanitizedInput, currentStats as any);
+      
+      // Show success toast
+      if (Object.values(parsed.statChanges).some(delta => delta !== 0)) {
+        toastManager.show('Stats updated!', 'success', 2000);
+      }
+
+      // Apply stat changes
+      Object.entries(parsed.statChanges).forEach(([type, delta]) => {
+        if (delta !== 0) {
+          updateStat(type as any, delta);
+        }
+      });
+
+      // Add quest if generated
+      if (parsed.quest) {
+        addQuest(parsed.quest);
+      }
+
+      const assistantMessage: ChatMessage = {
+        id: `assistant-${Date.now()}`,
+        role: 'assistant',
+        content: parsed.message,
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+
+      // Check if we should generate a quest based on imbalances
+      const statValues = Object.values(stats).map((s) => s.value);
+      const minStat = Math.min(...statValues);
+      const maxStat = Math.max(...statValues);
+      if (maxStat - minStat > 40) {
+        const quest = await generateQuest(currentStats as any);
+        if (quest) {
+          addQuest(quest);
+          const questMessage: ChatMessage = {
+            id: `quest-${Date.now()}`,
+            role: 'system',
+            content: `⚔️ NEW QUEST: ${quest.title}\n\n${quest.description}\n\nObjective: ${quest.objective}\n\nReward: ${quest.reward}`,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, questMessage]);
+        }
+      }
+    } catch (error) {
+      console.error('Error processing message:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+      toastManager.show(`Error: ${errorMsg}`, 'error');
+      const errorMessage: ChatMessage = {
+        id: `error-${Date.now()}`,
+        role: 'system',
+        content: 'I encountered an error. Please try again.',
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <div className="pixel-card max-w-3xl mx-auto mt-8" aria-label="THE NAVIGATOR">
+      <div className="flex items-center gap-3 mb-6">
+        <Icon name="chat" size={32} />
+        <h3 className="text-sm text-pixel-accent text-glow">THE NAVIGATOR</h3>
+      </div>
+      
+      {/* Messages */}
+      <div className="h-80 overflow-y-auto mb-4 space-y-3 pr-2">
+        <AnimatePresence>
+          {messages.map((message) => (
+            <motion.div
+              key={message.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className={`p-3 rounded pixel-border ${
+                message.role === 'user'
+                  ? 'bg-gradient-to-r from-pixel-blue to-pixel-purple text-right ml-12'
+                  : message.role === 'system'
+                  ? 'bg-gradient-to-r from-pixel-purple to-pixel-pink text-center'
+                  : 'bg-gradient-to-r from-pixel-dark to-pixel-bg-light text-left mr-12'
+              } text-xs whitespace-pre-wrap`}
+            >
+              {message.content}
+            </motion.div>
+          ))}
+        </AnimatePresence>
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input */}
+      <form onSubmit={handleSubmit} className="flex gap-3 mb-3">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Tell me about your week, Architect..."
+          className="flex-1 pixel-input"
+          disabled={isProcessing}
+          aria-label="Chat input"
+          aria-describedby="chat-help"
+        />
+        <div id="chat-help" className="sr-only">
+          Describe your week in natural language. The Navigator will automatically update your stats.
+        </div>
+        <button
+          type="submit"
+          className="pixel-button"
+          disabled={isProcessing || !input.trim()}
+        >
+          {isProcessing ? (
+            <>
+              <LoadingSpinner size="sm" className="mr-2" />
+              Processing...
+            </>
+          ) : (
+            'SEND'
+          )}
+        </button>
+      </form>
+      
+      {/* Simulation Button */}
+      <button
+        onClick={() => setShowSimulation(true)}
+        className="w-full pixel-button bg-gradient-to-r from-pixel-purple to-pixel-pink"
+      >
+        <Icon name="simulation" size={16} className="mr-2" />
+        RUN SOVEREIGNTY SIMULATION
+      </button>
+      
+      <SimulationModal
+        isOpen={showSimulation}
+        onClose={() => setShowSimulation(false)}
+      />
+    </div>
+  );
+}

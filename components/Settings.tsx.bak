@@ -1,0 +1,159 @@
+'use client';
+
+import { useState } from 'react';
+import { toastManager } from '@/lib/toast';
+import Icon from './Icon';
+
+interface Settings {
+  soundEnabled: boolean;
+  animationsEnabled: boolean;
+  crtOverlayEnabled: boolean;
+  notificationsEnabled: boolean;
+  theme: 'default' | 'dark' | 'light';
+}
+
+const defaultSettings: Settings = {
+  soundEnabled: true,
+  animationsEnabled: true,
+  crtOverlayEnabled: true,
+  notificationsEnabled: true,
+  theme: 'default',
+};
+
+export default function Settings() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [settings, setSettings] = useState<Settings>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('terra-nova-settings');
+      return saved ? JSON.parse(saved) : defaultSettings;
+    }
+    return defaultSettings;
+  });
+
+  const saveSettings = (newSettings: Settings) => {
+    setSettings(newSettings);
+    localStorage.setItem('terra-nova-settings', JSON.stringify(newSettings));
+    // Apply settings
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('data-sound', String(newSettings.soundEnabled));
+      document.documentElement.setAttribute('data-animations', String(newSettings.animationsEnabled));
+      document.documentElement.setAttribute('data-crt', String(newSettings.crtOverlayEnabled));
+    }
+    toastManager.show('Settings saved!', 'success');
+  };
+
+  return (
+    <>
+      <button
+        onClick={() => setIsOpen(true)}
+        className="fixed bottom-4 right-4 pixel-button bg-pixel-purple z-50"
+        aria-label="Open settings"
+      >
+        <Icon name="achievement" size={20} />
+      </button>
+
+      {isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[100] flex items-center justify-center p-4">
+          <div className="pixel-card max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <Icon name="achievement" size={32} />
+                <h2 className="text-lg text-pixel-accent text-glow">SETTINGS</h2>
+              </div>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="pixel-button bg-pixel-red"
+                aria-label="Close settings"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Sound Settings */}
+              <div className="pixel-card p-4">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <div>
+                    <div className="text-sm text-pixel font-bold mb-1">Sound Effects</div>
+                    <div className="text-xs text-gray-400">Enable audio feedback</div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={settings.soundEnabled}
+                    onChange={(e) => saveSettings({ ...settings, soundEnabled: e.target.checked })}
+                    className="w-6 h-6 cursor-pointer"
+                    aria-label="Toggle sound effects"
+                  />
+                </label>
+              </div>
+
+              {/* Animation Settings */}
+              <div className="pixel-card p-4">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <div>
+                    <div className="text-sm text-pixel font-bold mb-1">Animations</div>
+                    <div className="text-xs text-gray-400">Enable visual animations</div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={settings.animationsEnabled}
+                    onChange={(e) => saveSettings({ ...settings, animationsEnabled: e.target.checked })}
+                    className="w-6 h-6 cursor-pointer"
+                    aria-label="Toggle animations"
+                  />
+                </label>
+              </div>
+
+              {/* CRT Overlay Settings */}
+              <div className="pixel-card p-4">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <div>
+                    <div className="text-sm text-pixel font-bold mb-1">CRT Overlay</div>
+                    <div className="text-xs text-gray-400">Retro monitor scanline effect</div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={settings.crtOverlayEnabled}
+                    onChange={(e) => saveSettings({ ...settings, crtOverlayEnabled: e.target.checked })}
+                    className="w-6 h-6 cursor-pointer"
+                    aria-label="Toggle CRT overlay"
+                  />
+                </label>
+              </div>
+
+              {/* Notifications Settings */}
+              <div className="pixel-card p-4">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <div>
+                    <div className="text-sm text-pixel font-bold mb-1">Notifications</div>
+                    <div className="text-xs text-gray-400">Show toast notifications</div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={settings.notificationsEnabled}
+                    onChange={(e) => saveSettings({ ...settings, notificationsEnabled: e.target.checked })}
+                    className="w-6 h-6 cursor-pointer"
+                    aria-label="Toggle notifications"
+                  />
+                </label>
+              </div>
+
+              {/* Reset Settings */}
+              <div className="pixel-card p-4">
+                <button
+                  onClick={() => {
+                    saveSettings(defaultSettings);
+                  }}
+                  className="w-full pixel-button bg-pixel-orange"
+                >
+                  Reset to Defaults
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+

@@ -1,0 +1,138 @@
+'use client';
+
+import { useState } from 'react';
+import { useGameStore } from '@/store/gameStore';
+import { exportGameState, importGameState, downloadFile } from '@/lib/utils';
+import { toastManager } from '@/lib/toast';
+import Icon from './Icon';
+
+export default function DataManager() {
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const reset = useGameStore((state) => state.reset);
+  const gameState = useGameStore((state) => state);
+
+  const handleExport = () => {
+    try {
+      setIsExporting(true);
+      const state = {
+        stats: gameState.stats,
+        relics: gameState.relics,
+        quests: gameState.quests,
+        skillTree: gameState.skillTree,
+        avatar: gameState.avatar,
+        base: gameState.base,
+        totalProgress: gameState.totalProgress,
+        lastUpdated: gameState.lastUpdated,
+        freeRoamMode: gameState.freeRoamMode,
+      };
+      const json = exportGameState(state);
+      const filename = `terra-nova-save-${new Date().toISOString().split('T')[0]}.json`;
+      downloadFile(json, filename);
+      toastManager.show('Game state exported successfully!', 'success');
+    } catch (error) {
+      toastManager.show('Failed to export game state', 'error');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleImport = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      try {
+        setIsImporting(true);
+        const text = await file.text();
+        const importedState = importGameState(text);
+        
+        // Validate and apply state
+        if (importedState.stats && importedState.relics) {
+          // Reset and apply imported state
+          reset();
+          // Note: This is a simplified import. In production, you'd want to merge more carefully
+          toastManager.show('Game state imported successfully!', 'success');
+          setTimeout(() => window.location.reload(), 1000);
+        } else {
+          throw new Error('Invalid game state format');
+        }
+      } catch (error) {
+        toastManager.show('Failed to import game state. Please check the file format.', 'error');
+      } finally {
+        setIsImporting(false);
+      }
+    };
+    input.click();
+  };
+
+  const handleReset = () => {
+    if (confirm('Are you sure you want to reset all progress? This cannot be undone.')) {
+      reset();
+      toastManager.show('Game reset successfully', 'info');
+    }
+  };
+
+  return (
+    <div className="pixel-card max-w-2xl mx-auto mt-4">
+      <div className="flex items-center gap-3 mb-6">
+        <Icon name="achievement" size={32} />
+        <h3 className="text-sm text-pixel-accent text-glow">DATA MANAGEMENT</h3>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <button
+          onClick={handleExport}
+          disabled={isExporting}
+          className="pixel-button flex items-center justify-center gap-2"
+        >
+          {isExporting ? (
+            <>
+              <div className="loading-spinner w-4 h-4"></div>
+              Exporting...
+            </>
+          ) : (
+            <>
+              <Icon name="success" size={16} />
+              Export Save
+            </>
+          )}
+        </button>
+
+        <button
+          onClick={handleImport}
+          disabled={isImporting}
+          className="pixel-button bg-pixel-blue flex items-center justify-center gap-2"
+        >
+          {isImporting ? (
+            <>
+              <div className="loading-spinner w-4 h-4"></div>
+              Importing...
+            </>
+          ) : (
+            <>
+              <Icon name="chat" size={16} />
+              Import Save
+            </>
+          )}
+        </button>
+
+        <button
+          onClick={handleReset}
+          className="pixel-button bg-pixel-red flex items-center justify-center gap-2"
+        >
+          <Icon name="warning" size={16} />
+          Reset Game
+        </button>
+      </div>
+
+      <p className="text-xs text-gray-400 mt-4 text-center">
+        Export your progress to save it, or import a previous save file. Reset will clear all data.
+      </p>
+    </div>
+  );
+}
+

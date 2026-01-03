@@ -1,0 +1,79 @@
+'use client';
+
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { useGameStore } from '@/store/gameStore';
+
+export default function FreeRoamMode() {
+  const freeRoamMode = useGameStore((state) => state.freeRoamMode);
+  const hasBluePassport = useGameStore((state) => 
+    state.relics.find(r => r.id === 'blaue-pass')?.unlocked || false
+  );
+  const [selectedDestination, setSelectedDestination] = useState<string | null>(null);
+
+  // Free Roam Mode requires both Free Roam Mode AND Blue Passport
+  if (!freeRoamMode || !hasBluePassport) return null;
+
+  const destinations = [
+    { id: 'japan', name: 'Japan', emoji: '🇯🇵', description: 'Land of the Rising Sun' },
+    { id: 'bali', name: 'Bali', emoji: '🇮🇩', description: 'Island Paradise' },
+    { id: 'nyc', name: 'New York', emoji: '🇺🇸', description: 'The Big Apple' },
+    { id: 'paris', name: 'Paris', emoji: '🇫🇷', description: 'City of Light' },
+    { id: 'tokyo', name: 'Tokyo', emoji: '🇯🇵', description: 'Neon Metropolis' },
+    { id: 'dubai', name: 'Dubai', emoji: '🇦🇪', description: 'Desert Oasis' },
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="fixed inset-0 flex items-center justify-center z-20 pointer-events-auto"
+    >
+      <div className="pixel-border bg-pixel-dark p-8 max-w-2xl mx-4">
+        <h2 className="text-2xl mb-4 text-center text-pixel-gold pixel-glow">
+          🌍 FREE ROAM MODE UNLOCKED 🌍
+        </h2>
+        <p className="text-xs text-center text-gray-300 mb-6">
+          Architect, you have achieved Absolute Sovereignty. The world is yours to explore.
+          Where would you like to travel next?
+        </p>
+        
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+          {destinations.map((dest) => (
+            <motion.button
+              key={dest.id}
+              onClick={() => setSelectedDestination(dest.id)}
+              className={`pixel-border p-4 text-center ${
+                selectedDestination === dest.id
+                  ? 'bg-pixel-gold bg-opacity-20 border-pixel-gold'
+                  : 'bg-pixel-dark'
+              }`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <div className="text-4xl mb-2">{dest.emoji}</div>
+              <div className="text-xs font-bold">{dest.name}</div>
+              <div className="text-xs text-gray-400">{dest.description}</div>
+            </motion.button>
+          ))}
+        </div>
+
+        {selectedDestination && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center"
+          >
+            <p className="text-sm text-pixel-accent mb-4">
+              ✈️ Planning your journey to {destinations.find(d => d.id === selectedDestination)?.name}...
+            </p>
+            <p className="text-xs text-gray-400">
+              Use this as a reminder to plan your next real-world adventure!
+            </p>
+          </motion.div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+

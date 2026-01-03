@@ -1,0 +1,74 @@
+'use client';
+
+import { motion } from 'framer-motion';
+import { useGameStore } from '@/store/gameStore';
+import { Quest } from '@/types/game';
+import Icon from './Icon';
+
+export default function QuestList() {
+  const quests = useGameStore((state: { quests: Quest[] }) => state.quests);
+  const completeQuest = useGameStore((state: { completeQuest: (id: string) => void }) => state.completeQuest);
+
+  const activeQuests = quests.filter((q: Quest) => !q.completed);
+
+  if (activeQuests.length === 0) {
+    return null;
+  }
+
+  const getQuestBorderColor = (quest: Quest) => {
+    if (quest.specialType === 'bureaucracy') return 'border-pixel-red';
+    if (quest.specialType === 'homesickness') return 'border-pixel-orange';
+    return 'border-pixel-gold';
+  };
+
+  const getQuestIcon = (quest: Quest) => {
+    if (quest.specialType === 'bureaucracy') return 'bossFight';
+    if (quest.specialType === 'homesickness') return 'debuff';
+    return 'quest';
+  };
+
+  return (
+    <div className="pixel-card max-w-3xl mx-auto mt-4" aria-label="ACTIVE QUESTS">
+      <div className="flex items-center gap-3 mb-6">
+        <Icon name="quest" size={32} />
+        <h3 className="text-sm text-pixel-gold text-glow">ACTIVE QUESTS</h3>
+      </div>
+      <div className="space-y-4">
+        {activeQuests.map((quest: Quest) => (
+          <motion.div
+            key={quest.id}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className={`pixel-card border-2 ${getQuestBorderColor(quest)}`}
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <Icon name={getQuestIcon(quest) as any} size={24} />
+              <div className="text-xs font-bold text-pixel-gold flex-1 text-pixel">
+                {quest.title}
+              </div>
+              {quest.specialType && (
+                <span className="text-xs text-gray-400 pixel-border px-2 py-1">
+                  {quest.specialType === 'bureaucracy' && 'BOSS FIGHT'}
+                  {quest.specialType === 'homesickness' && 'DEBUFF'}
+                </span>
+              )}
+            </div>
+            <div className="text-xs text-gray-300 mb-3 leading-relaxed">{quest.description}</div>
+            <div className="text-xs text-gray-400 mb-2">
+              <strong className="text-pixel-accent">Objective:</strong> {quest.objective}
+            </div>
+            <div className="text-xs text-pixel-gold mb-4">
+              <strong>Reward:</strong> {quest.reward}
+            </div>
+            <button
+              onClick={() => completeQuest(quest.id)}
+              className="pixel-button w-full"
+            >
+              COMPLETE QUEST
+            </button>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}

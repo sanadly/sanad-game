@@ -1,0 +1,58 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { toastManager, Toast, ToastType } from '@/lib/toast';
+import Icon from './Icon';
+
+const toastIcons: Record<ToastType, 'success' | 'warning' | 'error' | 'info'> = {
+  success: 'success',
+  error: 'error',
+  warning: 'warning',
+  info: 'info',
+};
+
+const toastColors: Record<ToastType, string> = {
+  success: 'bg-green-500',
+  error: 'bg-red-500',
+  warning: 'bg-yellow-500',
+  info: 'bg-blue-500',
+};
+
+export default function ToastContainer() {
+  const [toasts, setToasts] = useState<Toast[]>([]);
+
+  useEffect(() => {
+    const unsubscribe = toastManager.subscribe(setToasts);
+    return unsubscribe;
+  }, []);
+
+  return (
+    <div className="fixed top-4 right-4 z-[10000] space-y-2 pointer-events-none">
+      <AnimatePresence>
+        {toasts.map((toast) => (
+          <motion.div
+            key={toast.id}
+            initial={{ opacity: 0, x: 100, scale: 0.8 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: 100, scale: 0.8 }}
+            className={`pixel-border ${toastColors[toast.type]} p-3 min-w-[300px] max-w-[400px] pointer-events-auto`}
+          >
+            <div className="flex items-center gap-3">
+              <Icon name={toastIcons[toast.type]} size={20} />
+              <p className="text-xs text-white flex-1 text-pixel">{toast.message}</p>
+              <button
+                onClick={() => toastManager.remove(toast.id)}
+                className="text-white hover:text-gray-200 text-lg"
+                aria-label="Close toast"
+              >
+                ×
+              </button>
+            </div>
+          </motion.div>
+        ))}
+      </AnimatePresence>
+    </div>
+  );
+}
+

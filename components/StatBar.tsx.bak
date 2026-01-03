@@ -1,0 +1,139 @@
+'use client';
+
+import { memo } from 'react';
+import { motion } from 'framer-motion';
+import { Stat } from '@/types/game';
+import Icon from './Icon';
+
+interface StatBarProps {
+  stat: Stat;
+}
+
+const statIconMap: Record<string, 'sovereignty' | 'capital' | 'intellect' | 'aesthetics' | 'kindred' | 'vitality'> = {
+  SOVEREIGNTY: 'sovereignty',
+  CAPITAL: 'capital',
+  INTELLECT: 'intellect',
+  AESTHETICS: 'aesthetics',
+  KINDRED: 'kindred',
+  VITALITY: 'vitality',
+};
+
+const StatBar = memo(function StatBar({ stat }: StatBarProps) {
+  const percentage = (stat.value / stat.max) * 100;
+  const isOverflowing = percentage >= 90;
+  const showBrainGlow = stat.type === 'INTELLECT' && percentage >= 50;
+  const showLightning = stat.type === 'INTELLECT' && percentage >= 100;
+  const showOverflow = stat.type === 'CAPITAL' && isOverflowing;
+  const iconName = statIconMap[stat.type] || 'sovereignty';
+
+  return (
+    <div 
+      className="flex flex-col items-center gap-3 p-4 pixel-card"
+      role="progressbar"
+      aria-label={`${stat.label} stat: ${Math.round(stat.value)} out of ${stat.max}`}
+      aria-valuenow={stat.value}
+      aria-valuemin={0}
+      aria-valuemax={stat.max}
+      tabIndex={0}
+    >
+      {/* Top Icon with Special Effects */}
+      <div className="relative mb-2">
+        <div className={`pixel-glow ${showBrainGlow ? 'brain-glow' : ''}`}>
+          <Icon name={iconName} size={48} className="drop-shadow-lg" />
+        </div>
+        {showLightning && (
+          <div className="lightning-effect">
+            <Icon name="levelUp" size={32} />
+          </div>
+        )}
+      </div>
+
+      {/* Vertical Bar Container - Stacked Pixel Approach */}
+      <div className="relative w-20 h-72 stat-bar-container pixel-border flex flex-col-reverse overflow-visible bg-gray-900">
+        {/* Pixel Noise Texture Overlay for Mana/Vitality */}
+        {stat.type === 'VITALITY' && (
+          <div 
+            className="absolute inset-0 opacity-20 pointer-events-none"
+            style={{
+              backgroundImage: `repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(255,255,255,0.1) 2px,
+                rgba(255,255,255,0.1) 4px
+              )`,
+              imageRendering: 'pixelated',
+            }}
+          />
+        )}
+        
+        {/* Fill Layer - Stacked Pixel Approach */}
+        <motion.div
+          className="w-full flex flex-col-reverse stat-bar-fill"
+          initial={{ height: 0 }}
+          animate={{ height: `${Math.min(percentage, 100)}%` }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          style={{
+            background: `linear-gradient(to top, ${stat.color}, ${stat.color}dd, ${stat.color}aa)`,
+            imageRendering: 'pixelated',
+          }}
+        >
+          {/* Pixel fill items */}
+          {Array.from({ length: Math.floor(percentage / 10) }).map((_, i) => (
+            <div
+              key={i}
+              className="w-full h-5 flex items-center justify-center text-sm pixel-art"
+              style={{ color: stat.color }}
+            >
+              {stat.fillItems[i % stat.fillItems.length] === 'stamp' && '📋'}
+              {stat.fillItems[i % stat.fillItems.length] === 'seal' && '🔖'}
+              {stat.fillItems[i % stat.fillItems.length] === 'document' && '📄'}
+              {stat.fillItems[i % stat.fillItems.length] === 'coin' && '🪙'}
+              {stat.fillItems[i % stat.fillItems.length] === 'gem' && '💎'}
+              {stat.fillItems[i % stat.fillItems.length] === 'treasure' && '💎'}
+              {stat.fillItems[i % stat.fillItems.length] === 'scroll' && '📜'}
+              {stat.fillItems[i % stat.fillItems.length] === 'book' && '📖'}
+              {stat.fillItems[i % stat.fillItems.length] === 'crystal' && '💠'}
+              {stat.fillItems[i % stat.fillItems.length] === 'dumbbell' && '🏋️'}
+              {stat.fillItems[i % stat.fillItems.length] === 'watch' && '⌚'}
+              {stat.fillItems[i % stat.fillItems.length] === 'ticket' && '🎫'}
+              {stat.fillItems[i % stat.fillItems.length] === 'heart' && '❤️'}
+              {stat.fillItems[i % stat.fillItems.length] === 'ring' && '💍'}
+              {stat.fillItems[i % stat.fillItems.length] === 'ember' && '🔥'}
+              {stat.fillItems[i % stat.fillItems.length] === 'potion' && '🧪'}
+              {stat.fillItems[i % stat.fillItems.length] === 'energy' && '⚡'}
+              {stat.fillItems[i % stat.fillItems.length] === 'sparkle' && '✨'}
+            </div>
+          ))}
+        </motion.div>
+
+        {/* Overflow Effect for Gold Bar */}
+        {showOverflow && (
+          <div className="absolute -top-6 left-0 right-0 flex justify-center gap-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <motion.div
+                key={i}
+                className="overflow-sparkle text-xl"
+                style={{ animationDelay: `${i * 0.2}s` }}
+              >
+                ✨
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Label */}
+      <div className="text-xs text-center text-pixel font-bold text-glow" style={{ color: stat.color }}>
+        {stat.label}
+      </div>
+
+      {/* Value */}
+      <div className="text-xs text-gray-300 font-mono">
+        {Math.round(stat.value)}/{stat.max}
+      </div>
+    </div>
+  );
+});
+
+export default StatBar;
