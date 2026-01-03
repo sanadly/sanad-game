@@ -76,15 +76,16 @@ export interface Base {
   description: string;
 }
 
-export interface GameState {
-  stats: Record<StatType, Stat>;
-  relics: Relic[];
-  quests: Quest[];
-  avatar: Avatar;
-  base: Base;
-  totalProgress: number; // 0-100, affects dream background clarity
-  lastUpdated: Date;
-  freeRoamMode: boolean; // Endgame state
+
+
+export interface BucketListItem {
+  id: string;
+  title: string;
+  description: string;
+  iconUrl: string;
+  completed: boolean;
+  createdAt: Date;
+  completedAt?: Date;
 }
 
 export interface ChatMessage {
@@ -92,5 +93,17 @@ export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: Date;
+}
+
+export interface GameState {
+  stats: Record<StatType, Stat>;
+  relics: Relic[];
+  quests: Quest[];
+  bucketList: BucketListItem[];
+  avatar: Avatar;
+  base: Base;
+  totalProgress: number; // 0-100, affects dream background clarity
+  lastUpdated: Date;
+  freeRoamMode: boolean; // Endgame state
 }
 

@@ -6,12 +6,16 @@ import {
   saveTasks, 
   saveQuests, 
   saveRelics,
+  saveBucketList,
   loadGameState,
   loadTasks,
   loadQuests,
   loadRelics,
+  loadBucketList,
   isFirebaseConfigured 
 } from '@/lib/firestore';
+import { BucketListItem } from '@/types/game';
+import { generatePixelArtIcon } from '@/lib/image-generation';
 import { Timestamp } from 'firebase/firestore';
 
 // Debounce helper for Firebase sync
@@ -58,6 +62,12 @@ interface GameState {
     status: 'active' | 'completed';
   }[];
   completeQuest: (questId: string) => void;
+
+  // Bucket List
+  bucketList: BucketListItem[];
+  addDream: (title: string, description: string) => Promise<void>;
+  toggleDream: (id: string) => void;
+  removeDream: (id: string) => void;
   
   // Actions
   addCapital: (amount: number) => void;
@@ -179,6 +189,54 @@ export const useGameStore = create<GameState>((set, get) => ({
     };
   }),
 
+  bucketList: [],
+  addDream: async (title, description) => {
+    // Optimistic add with placeholder
+    const id = `dream-${Date.now()}`;
+    const newDream: BucketListItem = {
+      id,
+      title,
+      description,
+      iconUrl: '', // Will be updated
+      completed: false,
+      createdAt: new Date(),
+    };
+
+    set((state) => ({ bucketList: [...state.bucketList, newDream] }));
+
+    // Generate icon
+    try {
+      const iconUrl = await generatePixelArtIcon(title + " " + description);
+      if (iconUrl) {
+         set((state) => ({
+           bucketList: state.bucketList.map(d => 
+             d.id === id ? { ...d, iconUrl } : d
+           )
+         }));
+      }
+    } catch (e) {
+      console.error("Failed to generate dream icon", e);
+    }
+  },
+
+  toggleDream: (id) => set((state) => ({
+    bucketList: state.bucketList.map(d => {
+      if (d.id === id) {
+        const completed = !d.completed;
+         return {
+           ...d,
+           completed,
+           completedAt: completed ? new Date() : undefined
+         };
+      }
+      return d;
+    })
+  })),
+
+  removeDream: (id) => set((state) => ({
+    bucketList: state.bucketList.filter(d => d.id !== id)
+  })),
+
   // Legacy/Compatibility defaults
   avatar: {
     level: 1,
@@ -279,6 +337,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         saveQuests(state.activeQuests);
         // Sync relics
         saveRelics(state.relics);
+        // Sync bucket list
+        saveBucketList(state.bucketList);
         console.log('🔥 Synced to Firebase');
       }
     });
@@ -292,11 +352,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
 
     try {
-      const [gameState, tasks, quests, relics] = await Promise.all([
+      const [gameState, tasks, quests, relics, bucketList] = await Promise.all([
         loadGameState(),
         loadTasks(),
         loadQuests(),
         loadRelics(),
+        loadBucketList(),
       ]);
 
       const updates: Partial<GameState> = { isHydrated: true };
@@ -327,6 +388,15 @@ export const useGameStore = create<GameState>((set, get) => ({
         updates.relics = relics;
       }
 
+      if (bucketList && bucketList.length > 0) {
+        // Hydrate dates properly
+        updates.bucketList = bucketList.map(item => ({
+             ...item,
+             createdAt: item.createdAt instanceof Timestamp ? item.createdAt.toDate() : new Date(item.createdAt),
+             completedAt: item.completedAt ? (item.completedAt instanceof Timestamp ? item.completedAt.toDate() : new Date(item.completedAt)) : undefined
+        }));
+      }
+
       set(updates as Partial<GameState>);
       console.log('🔥 Hydrated from Firebase');
     } catch (error) {
@@ -346,7 +416,8 @@ if (typeof window !== 'undefined') {
       state.sovereignty !== prevState.sovereignty ||
       state.tasks !== prevState.tasks ||
       state.activeQuests !== prevState.activeQuests ||
-      state.relics !== prevState.relics
+      state.relics !== prevState.relics ||
+      state.bucketList !== prevState.bucketList
     )) {
       state.syncToFirebase();
     }

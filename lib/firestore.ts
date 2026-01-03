@@ -17,7 +17,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { Task } from '@/types/tasks';
-import { Quest, Relic, ChatMessage } from '@/types/game';
+import { Quest, Relic, ChatMessage, BucketListItem } from '@/types/game';
 
 // Generate or retrieve a persistent user ID (device-based for now)
 function getUserId(): string {
@@ -198,6 +198,39 @@ export async function loadRelics(): Promise<{ id: string; unlocked: boolean }[]>
     return [];
   } catch (error) {
     console.error('Error loading relics:', error);
+    return [];
+  }
+}
+
+// ============ BUCKET LIST ============
+
+export async function saveBucketList(bucketList: BucketListItem[]): Promise<void> {
+  if (!db) return;
+  
+  const userId = getUserId();
+  const bucketRef = doc(db, 'users', userId, 'data', 'bucketList');
+  
+  try {
+    await setDoc(bucketRef, { bucketList, lastUpdated: serverTimestamp() });
+  } catch (error) {
+    console.error('Error saving bucket list:', error);
+  }
+}
+
+export async function loadBucketList(): Promise<BucketListItem[]> {
+  if (!db) return [];
+  
+  const userId = getUserId();
+  const bucketRef = doc(db, 'users', userId, 'data', 'bucketList');
+  
+  try {
+    const snapshot = await getDoc(bucketRef);
+    if (snapshot.exists()) {
+      return snapshot.data().bucketList as BucketListItem[];
+    }
+    return [];
+  } catch (error) {
+    console.error('Error loading bucket list:', error);
     return [];
   }
 }
