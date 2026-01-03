@@ -24,7 +24,7 @@ export interface ParsedUpdate {
 
 export async function parseUserInput(input: string, currentStats: Record<StatType, { value: number; max: number }>): Promise<ParsedUpdate> {
   if (!openai) {
-    const errorMsg = 'DeepSeek API not configured. Please add DEEPSEEK_API_KEY to your .env file.';
+    const errorMsg = 'DeepSeek API not configured. Please add NEXT_PUBLIC_DEEPSEEK_API_KEY to your .env file.';
     toastManager.show(errorMsg, 'error', 5000);
     return {
       statChanges: { SOVEREIGNTY: 0, CAPITAL: 0, INTELLECT: 0, AESTHETICS: 0, KINDRED: 0, VITALITY: 0 },
