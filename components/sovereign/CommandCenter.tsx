@@ -2,13 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { parseUserInput } from '@/lib/deepseek';
 import { ChatMessage, StatType } from '@/types/game';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export const CommandCenter = () => {
-  const { stats, updateStat, addQuest, activeQuests } = useGameStore();
+  const { stats, updateStat, addQuest, activeQuests, completeQuest } = useGameStore();
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  // Track expanded quest for details
+  const [expandedQuestId, setExpandedQuestId] = useState<string | null>(null);
 
   // Auto-scroll to bottom of chat
   useEffect(() => {
@@ -79,7 +83,7 @@ export const CommandCenter = () => {
     <div className="h-full bg-pixel-dark border-l-4 border-gray-800 p-4 flex flex-col font-pixel">
       {/* Navigator Chat */}
       <div className="flex-1 min-h-0 bg-gray-900 border-2 border-gray-700 rounded-lg p-3 mb-4 flex flex-col relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full bg-gray-800 text-[10px] text-center text-gray-400 py-1 border-b border-gray-700">
+        <div className="absolute top-0 left-0 w-full bg-gray-800 text-[10px] text-center text-gray-400 py-1 border-b border-gray-700 z-10">
           NAVIGATOR UPLINK v2.6
         </div>
         
@@ -119,7 +123,7 @@ export const CommandCenter = () => {
         </div>
 
         {/* Vision/Input Area */}
-        <div className="mt-auto flex items-center space-x-2 border-t border-gray-700 pt-2">
+        <div className="mt-auto flex items-center space-x-2 border-t border-gray-700 pt-2 z-10 bg-gray-900">
            <button 
              className="w-8 h-8 flex items-center justify-center bg-gray-800 hover:bg-gray-700 border border-gray-600 rounded text-gray-400 hover:text-white transition-colors" 
              title="Upload Vision Data"
@@ -140,17 +144,69 @@ export const CommandCenter = () => {
       </div>
 
       {/* Quest Log */}
-      <div className="h-1/3 bg-gray-900 border-2 border-gray-700 p-3 rounded-lg overflow-y-auto">
-        <div className="text-xs text-pixel-gold mb-2 border-b border-gray-700 pb-1 sticky top-0 bg-gray-900">ACTIVE QUESTS</div>
-        <div className="space-y-2">
-          {activeQuests && activeQuests.map((quest) => (
-            <div key={quest.id} className="flex items-center space-x-2 p-2 hover:bg-white/5 rounded cursor-pointer group">
-              <div className="w-2 h-2 bg-pixel-accent rounded-full animate-pulse" />
-              <div className="text-xs text-gray-300 group-hover:text-white">{quest.title}</div>
-            </div>
-          ))}
-          {(!activeQuests || activeQuests.length === 0) && (
-            <div className="text-[10px] text-gray-600 italic">No active quests.</div>
+      <div className="h-1/3 bg-gray-900 border-2 border-gray-700 p-3 rounded-lg overflow-hidden flex flex-col">
+        <div className="text-xs text-pixel-gold mb-2 border-b border-gray-700 pb-1 flex justify-between items-center">
+            <span>ACTIVE QUESTS</span>
+            <span className="text-[10px] text-gray-500">{activeQuests?.filter(q => q.status === 'active').length || 0} PENDING</span>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-thin scrollbar-thumb-gray-600">
+          {activeQuests && activeQuests.filter(q => q.status === 'active').map((quest) => {
+            const isExpanded = expandedQuestId === quest.id;
+            
+            return (
+                <div 
+                    key={quest.id} 
+                    className={`
+                        rounded border transition-all duration-200 cursor-pointer overflow-hidden
+                        ${isExpanded ? 'bg-white/10 border-pixel-accent' : 'bg-transparent border-transparent hover:bg-white/5'}
+                    `}
+                    onClick={() => setExpandedQuestId(isExpanded ? null : quest.id)}
+                >
+                  <div className="flex items-center space-x-2 p-2">
+                    <div className={`w-2 h-2 rounded-full ${isExpanded ? 'bg-pixel-accent' : 'bg-pixel-accent/50 animate-pulse'}`} />
+                    <div className={`text-xs flex-1 ${isExpanded ? 'text-white font-bold' : 'text-gray-300'}`}>
+                        {quest.title}
+                    </div>
+                  </div>
+                  
+                  <AnimatePresence>
+                    {isExpanded && (
+                        <motion.div 
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="bg-black/20"
+                        >
+                            <div className="p-2 pt-0 text-[10px] text-gray-400 border-t border-white/5 mx-2 mt-1">
+                                <p className="mb-2 leading-relaxed">{quest.description || "No tactical data available."}</p>
+                                
+                                <div className="flex items-center justify-between mt-2">
+                                    <div className="flex gap-2">
+                                        <span className="text-pixel-gold">+{quest.gold} Gold</span>
+                                        <span className="text-pixel-blue">+{quest.xp} XP</span>
+                                    </div>
+                                    
+                                    <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            completeQuest(quest.id);
+                                        }}
+                                        className="bg-pixel-accent/20 hover:bg-pixel-accent/40 text-pixel-accent border border-pixel-accent/50 rounded px-2 py-1 uppercase tracking-wider font-bold transition-colors"
+                                    >
+                                        Complete Mission
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+            );
+          })}
+          
+          {(!activeQuests || activeQuests.filter(q => q.status === 'active').length === 0) && (
+            <div className="text-[10px] text-gray-600 italic text-center py-4">No active missions.</div>
           )}
         </div>
       </div>

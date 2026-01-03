@@ -48,7 +48,16 @@ interface GameState {
   
   // Inventory/Relics & Quests
   relics: { id: string; unlocked: boolean }[];
-  activeQuests: { id: string; title: string; status: 'active' | 'completed' }[];
+  activeQuests: { 
+    id: string; 
+    title: string; 
+    description?: string;
+    xp: number;
+    gold: number;
+    type: string;
+    status: 'active' | 'completed';
+  }[];
+  completeQuest: (questId: string) => void;
   
   // Actions
   addCapital: (amount: number) => void;
@@ -132,9 +141,43 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   relics: [],
   activeQuests: [
-    { id: '1', title: 'The Bureaucrat’s Maze', status: 'active' },
-    { id: '2', title: 'Deep Work Sprint', status: 'active' },
+    { 
+      id: '1', 
+      title: 'The Bureaucrat’s Maze', 
+      description: 'Navigate the complex web of administrative tasks to establish your sovereignty.',
+      xp: 100,
+      gold: 50,
+      type: 'main',
+      status: 'active' 
+    },
+    { 
+      id: '2', 
+      title: 'Deep Work Sprint', 
+      description: 'Complete 3 tasks in the "Work" category to boost your productivity.',
+      xp: 50,
+      gold: 25,
+      type: 'daily',
+      status: 'active' 
+    },
   ],
+  
+  completeQuest: (questId) => set((state) => {
+    const quest = state.activeQuests.find(q => q.id === questId);
+    if (!quest || quest.status === 'completed') return {};
+    
+    return {
+      activeQuests: state.activeQuests.map(q => 
+        q.id === questId ? { ...q, status: 'completed' } : q
+      ),
+      // Apply rewards
+      capital: state.capital + quest.gold,
+      stats: {
+        ...state.stats,
+        capital: state.stats.capital + quest.gold
+      }
+      // Note: XP system not fully implemented in stats yet, but we'd add it here
+    };
+  }),
 
   // Legacy/Compatibility defaults
   avatar: {
@@ -175,7 +218,15 @@ export const useGameStore = create<GameState>((set, get) => ({
   }),
   
   addQuest: (quest) => set((state) => ({ 
-      activeQuests: [...state.activeQuests, { id: quest.id, title: quest.title, status: 'active' }] 
+      activeQuests: [...state.activeQuests, { 
+        id: quest.id, 
+        title: quest.title, 
+        description: quest.description,
+        xp: quest.xp,
+        gold: quest.gold,
+        type: quest.type,
+        status: 'active' 
+      }] 
   })),
 
   reset: () => set({
