@@ -37,6 +37,17 @@ export interface FirestoreGameState {
   capital: number;
   intellect: number;
   sovereignty: number;
+  aesthetics?: number;
+  kindred?: number;
+  vitality?: number;
+  milestones?: {
+    capital?: number;
+    sovereignty?: number;
+    aesthetics?: number;
+    intellect?: number;
+    kindred?: number;
+    vitality?: number;
+  };
   freedomDate: Timestamp;
   avatar: {
     level: number;
@@ -44,12 +55,15 @@ export interface FirestoreGameState {
       travelerCloak: boolean;
       aura: boolean;
       clothes: string;
+      surgeryComplete?: boolean;
     };
   };
   base: {
     type: string;
     description: string;
     level: number;
+    items?: string[];
+    hasPet?: boolean;
   };
   lastUpdated: Timestamp;
 }
@@ -138,7 +152,7 @@ export async function loadTasks(): Promise<Task[]> {
 
 // ============ QUESTS ============
 
-export async function saveQuests(quests: { id: string; title: string; status: string }[]): Promise<void> {
+export async function saveQuests(quests: { id: string; title: string; description?: string; xp?: number; gold?: number; type?: string; status: string }[]): Promise<void> {
   if (!db) return;
   
   const userId = getUserId();
@@ -151,7 +165,7 @@ export async function saveQuests(quests: { id: string; title: string; status: st
   }
 }
 
-export async function loadQuests(): Promise<{ id: string; title: string; status: string }[]> {
+export async function loadQuests(): Promise<{ id: string; title: string; description?: string; xp?: number; gold?: number; type?: string; status: string }[]> {
   if (!db) return [];
   
   const userId = getUserId();
@@ -171,7 +185,7 @@ export async function loadQuests(): Promise<{ id: string; title: string; status:
 
 // ============ RELICS ============
 
-export async function saveRelics(relics: { id: string; unlocked: boolean }[]): Promise<void> {
+export async function saveRelics(relics: { id: string; name?: string; description?: string; unlocked: boolean; unlockedAt?: Date; unlockedByStat?: string; requiredValue?: number }[]): Promise<void> {
   if (!db) return;
   
   const userId = getUserId();
@@ -184,7 +198,7 @@ export async function saveRelics(relics: { id: string; unlocked: boolean }[]): P
   }
 }
 
-export async function loadRelics(): Promise<{ id: string; unlocked: boolean }[]> {
+export async function loadRelics(): Promise<{ id: string; name?: string; description?: string; unlocked: boolean; unlockedAt?: Date; unlockedByStat?: string; requiredValue?: number }[]> {
   if (!db) return [];
   
   const userId = getUserId();

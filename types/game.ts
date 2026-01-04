@@ -1,5 +1,14 @@
 export type StatType = 'SOVEREIGNTY' | 'CAPITAL' | 'INTELLECT' | 'AESTHETICS' | 'KINDRED' | 'VITALITY';
 
+// Configuration for each stat's essence tube visual
+export interface EssenceFillConfig {
+  primaryColor: string;
+  secondaryColor: string;
+  fillIcon: string;       // Emoji or sprite key for fill items
+  glowColor: string;
+  animationType: 'coins' | 'liquid' | 'scrolls' | 'hearts' | 'seals' | 'mirrors';
+}
+
 export interface Stat {
   type: StatType;
   value: number;
@@ -8,7 +17,55 @@ export interface Stat {
   icon: string;
   color: string;
   fillItems: string[];
+  milestone?: number;      // Target milestone (Golden Arrow position)
+  milestoneReached?: boolean;
 }
+
+// Default configurations for all 6 essence tubes
+export const STAT_CONFIGS: Record<StatType, EssenceFillConfig> = {
+  CAPITAL: {
+    primaryColor: '#FFD700',
+    secondaryColor: '#FFA500',
+    fillIcon: '🪙',
+    glowColor: 'rgba(255, 215, 0, 0.6)',
+    animationType: 'coins',
+  },
+  SOVEREIGNTY: {
+    primaryColor: '#1E90FF',
+    secondaryColor: '#4169E1',
+    fillIcon: '🦅',
+    glowColor: 'rgba(30, 144, 255, 0.6)',
+    animationType: 'seals',
+  },
+  AESTHETICS: {
+    primaryColor: '#FFB6C1',
+    secondaryColor: '#FF69B4',
+    fillIcon: '✨',
+    glowColor: 'rgba(255, 182, 193, 0.6)',
+    animationType: 'mirrors',
+  },
+  INTELLECT: {
+    primaryColor: '#9370DB',
+    secondaryColor: '#8A2BE2',
+    fillIcon: '📜',
+    glowColor: 'rgba(147, 112, 219, 0.6)',
+    animationType: 'scrolls',
+  },
+  KINDRED: {
+    primaryColor: '#FF6B6B',
+    secondaryColor: '#DC143C',
+    fillIcon: '❤️',
+    glowColor: 'rgba(255, 107, 107, 0.6)',
+    animationType: 'hearts',
+  },
+  VITALITY: {
+    primaryColor: '#00CED1',
+    secondaryColor: '#20B2AA',
+    fillIcon: '💧',
+    glowColor: 'rgba(0, 206, 209, 0.6)',
+    animationType: 'liquid',
+  },
+};
 
 export interface Relic {
   id: string;
@@ -17,6 +74,8 @@ export interface Relic {
   unlocked: boolean;
   unlockedAt?: Date;
   image?: string;
+  unlockedByStat?: StatType;  // Which stat milestone unlocked this
+  requiredValue?: number;      // Milestone value required
 }
 
 export interface Quest {
@@ -86,6 +145,11 @@ export interface BucketListItem {
   completed: boolean;
   createdAt: Date;
   completedAt?: Date;
+  // Scroll of Dreams enhancements
+  questType?: 'main' | 'side';  // Main Quest vs Side Quest classification
+  isPinned?: boolean;            // Up to 3 can be pinned as Active Quests
+  archivedAt?: Date;             // Legacy goals moved to "Echoes of the Past"
+  category?: string;             // Optional category for grouping
 }
 
 export interface ChatMessage {

@@ -1,6 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@import 'leaflet/dist/leaflet.css';
 
 :root {
   --foreground-rgb: 255, 255, 255;
@@ -10,14 +11,12 @@
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
+  background: linear-gradient(to bottom,
       transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+      rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb));
   font-family: 'Press Start 2P', monospace;
-  overflow: hidden; /* Prevent body scroll for sovereign screen feel */
+  overflow: hidden;
+  /* Prevent body scroll for sovereign screen feel */
 }
 
 /* Pixelated Scrollbar */
@@ -26,14 +25,14 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #0f0f1e; 
+  background: #0f0f1e;
   border-left: 2px solid #333;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #4a9eff; 
+  background: #4a9eff;
   border: 2px solid #0f0f1e;
-  box-shadow: inset -2px -2px 0px rgba(0,0,0,0.5);
+  box-shadow: inset -2px -2px 0px rgba(0, 0, 0, 0.5);
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -42,11 +41,11 @@ body {
 
 @layer utilities {
   .border-pixel-chunky {
-    box-shadow: 4px 4px 0px 0px rgba(0,0,0,1),
-                inset 2px 2px 0px 0px rgba(255,255,255,0.1);
+    box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1),
+      inset 2px 2px 0px 0px rgba(255, 255, 255, 0.1);
     border: 4px solid #333;
   }
-  
+
   .text-shadow-pixel {
     text-shadow: 2px 2px 0px #000;
   }
@@ -57,18 +56,140 @@ body {
   0% {
     transform: translateY(-100%);
   }
+
   100% {
     transform: translateY(100%);
   }
 }
 
 @keyframes flicker {
-  0% { opacity: 0.97; }
-  5% { opacity: 0.95; }
-  10% { opacity: 0.9; }
-  15% { opacity: 0.95; }
-  20% { opacity: 0.99; }
-  50% { opacity: 0.95; }
-  80% { opacity: 0.9; }
-  100% { opacity: 0.97; }
+  0% {
+    opacity: 0.97;
+  }
+
+  5% {
+    opacity: 0.95;
+  }
+
+  10% {
+    opacity: 0.9;
+  }
+
+  15% {
+    opacity: 0.95;
+  }
+
+  20% {
+    opacity: 0.99;
+  }
+
+  50% {
+    opacity: 0.95;
+  }
+
+  80% {
+    opacity: 0.9;
+  }
+
+  100% {
+    opacity: 0.97;
+  }
+}
+
+/* Essence Tube Animations */
+@keyframes sloshing {
+
+  0%,
+  100% {
+    transform: translateY(0) scaleY(1);
+  }
+
+  25% {
+    transform: translateY(-2px) scaleY(1.02);
+  }
+
+  50% {
+    transform: translateY(1px) scaleY(0.98);
+  }
+
+  75% {
+    transform: translateY(-1px) scaleY(1.01);
+  }
+}
+
+@keyframes sparkle {
+
+  0%,
+  100% {
+    filter: brightness(1) saturate(1);
+  }
+
+  50% {
+    filter: brightness(1.3) saturate(1.2);
+  }
+}
+
+@keyframes heartbeat {
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  14% {
+    transform: scale(1.1);
+  }
+
+  28% {
+    transform: scale(1);
+  }
+
+  42% {
+    transform: scale(1.1);
+  }
+
+  70% {
+    transform: scale(1);
+  }
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes glow-pulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 10px currentColor;
+  }
+
+  50% {
+    box-shadow: 0 0 25px currentColor;
+  }
+}
+
+/* Hide scrollbar but keep functionality */
+.noscroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.noscroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+/* Pixelated image rendering */
+.pixelated {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
 }
